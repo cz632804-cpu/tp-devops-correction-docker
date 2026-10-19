@@ -1,0 +1,35 @@
+# GitHub Actions CI workflow for the DevOps TP02 project.
+name: CI DevOps
+
+# Run tests on pushes to main/develop and on pull requests.
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  test-backend:
+    name: Build and test backend
+    runs-on: ubuntu-latest
+
+    steps:
+      # Retrieve the repository source code.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Match the Java 21 environment required by the course.
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: simple-api/pom.xml
+
+      # Maven verify runs unit tests and Testcontainers integration tests.
+      # GitHub-hosted Ubuntu runners provide a Docker environment.
+      - name: Build and run tests
+        working-directory: ./simple-api
+        run: mvn clean verify
