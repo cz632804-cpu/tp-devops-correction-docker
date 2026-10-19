@@ -1,0 +1,57 @@
+
+# TP02 - Continuous Integration
+# Runs Maven tests and SonarQube Cloud analysis.
+name: CI DevOps
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  test-backend:
+    name: Build test and analyze backend
+    runs-on: ubuntu-24.04
+
+    steps:
+      # Full Git history is needed for accurate SonarQube analysis.
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Use Java 21, matching the Spring Boot project.
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: simple-api/pom.xml
+
+      # Compile and run unit/integration tests.
+      - name: Build and test with Maven
+        working-directory: simple-api
+        run: mvn -B clean verify
+
+      # Analyze the Java source code and wait for the Quality Gate.
+      # Sonar Token is stored securely in GitHub Actions Secrets.
+      - name: SonarQube Cloud analysis and Quality Gate
+        working-directory: simple-api
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=cz632804-cpu_tp-devops-correction-docker \
+            -Dsonar.organization=cz632804-cpu \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.qualitygate.wait=true
