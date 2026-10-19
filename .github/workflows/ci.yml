@@ -1,6 +1,7 @@
 
 # TP02 - Continuous Integration
-# Runs Maven tests and SonarQube Cloud analysis.
+# CI runs on main and develop.
+# SonarQube Cloud analysis runs only on main due to Free plan limitations.
 name: CI DevOps
 
 on:
@@ -22,13 +23,13 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      # Full Git history is needed for accurate SonarQube analysis.
+      # Download the complete repository history for SonarQube.
       - name: Checkout source code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Use Java 21, matching the Spring Boot project.
+      # Configure the Java version used by the backend.
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
@@ -37,14 +38,17 @@ jobs:
           cache: maven
           cache-dependency-path: simple-api/pom.xml
 
-      # Compile and run unit/integration tests.
+      # Always compile and execute unit/integration tests.
+      # This step runs on main, develop and pull requests.
       - name: Build and test with Maven
         working-directory: simple-api
         run: mvn -B clean verify
 
-      # Analyze the Java source code and wait for the Quality Gate.
-      # Sonar Token is stored securely in GitHub Actions Secrets.
+      # The current SonarQube Cloud organization cannot access
+      # non-main branch analysis data on its Free plan.
+      # Keep the strict Quality Gate for main branch pushes.
       - name: SonarQube Cloud analysis and Quality Gate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: simple-api
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
